@@ -1,0 +1,5 @@
+dbname: eicu
+host: localhost
+port: 5432
+user: your-eicu-user
+password: your-eicu-pw
