@@ -1,0 +1,112 @@
+date_start: 2012-10-10  # min: 2012-10-10
+date_end: 2022-08-11    # max: 2022-08-11
+min_obs_required: 60
+max_hours: 24
+resampling_minutes: 5
+resampling_agg_func: median
+forecast_frequency: 5
+forecast_horizon: 24
+# eicu_patient_limit: 100
+# mlife_patient_limit: 1000
+targets:
+  - blood_pressure_systolic
+  - blood_pressure_diastolic
+  - blood_pressure_mean
+  - central_venous_pressure
+  - oxygen_saturation
+  - heart_rate
+extreme_value_limits:
+  blood_pressure_systolic:
+    min: 20
+    max: 240
+  blood_pressure_diastolic:
+    min: 8
+    max: 130
+  blood_pressure_mean:
+    min: 8
+    max: 150
+  central_venous_pressure:
+    min: 0
+    max: 40
+  heart_rate:
+    min: 20
+    max: 250
+  oxygen_saturation:
+    min: 45
+    max: 100
+needed_output_columns:
+  - case_id
+  - datetime
+  - datetime_at_forecast
+  - datetime_first_obs
+  - model_name
+  - target_type
+  - prediction
+  - target_value
+  - target_value_at_forecast
+  - target_imputed
+ts_models:
+  - naive
+  - ses
+  - holt
+  - holt_damped
+  - theta
+  - theta_unseasonal
+  - es_auto
+  - arima_auto
+  - nnet_ar
+ts_models_exclude_from_blend:
+  - naive
+  - ses
+  - holt
+  - holt-damped
+  - theta
+ts_models_to_plot:
+  - naive
+  - theta_unseasonal
+  - es_auto
+  - arima_auto
+  - nnet_ar
+  - gru
+  - transformer
+minutes_ahead_to_plot:
+  - 5
+  - 10
+  - 15
+  - 30
+  - 60
+  - 120
+ts_model_colours:
+  naive: "#32CD32"            # green
+  theta: "#FF00FF"            # magenta
+  theta_unseasonal: "#4c004c" # deep purple
+  ses: "#808000"              # olive
+  holt: "#C0C0C0"             # silver
+  holt_damped: "#EE82EE"      # violet
+  transformer: "#FF0000"      # red
+  gru: "#0000FF"              # blue
+  arima_auto: "#FFD700"       # gold
+  es_auto: "#800080"          # purple
+  nnet_ar: "#008080"          # teal
+var_labels:
+  blood_pressure_systolic: BP Systolic (mmHg)
+  blood_pressure_diastolic: BP Diastolic (mmHg)
+  blood_pressure_mean: BP Mean (mmHg)
+  central_venous_pressure: Central venous pressure (mmHg)
+  oxygen_saturation: Oxygen saturation (%)
+  heart_rate: Heart rate (1/min)
+  sex_male: Sex (male)
+  age: Age (years)
+model_name_labels:
+  naive: "Naive"
+  ses: "Simple ES"
+  holt: "Holt"
+  holt_damped: "Damped Holt"
+  # theta: "Theta"
+  theta_unseasonal: "Theta"
+  es_auto: "ETS"
+  arima_auto: "ARIMA"
+  nnet_ar: "AR NNet"
+  blend: "Ensemble"
+  gru: "GRU"
+  transformer: "Transformer"
