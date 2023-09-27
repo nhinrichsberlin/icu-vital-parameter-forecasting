@@ -1,0 +1,4 @@
+[flake8]
+exclude = venv*, .git*, .ipynb*
+ignore = E402, W504, W503
+max_line_length = 140
