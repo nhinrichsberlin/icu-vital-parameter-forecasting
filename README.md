@@ -17,3 +17,11 @@ leveraging data from patients after cardiothoracic surgery**.
   the R and Python scripts. The publication is based on two
   data sources: ICU data from a German Heart Center, and the eICU
   collaborative research database (https://eicu-crd.mit.edu/).
+
+Outputs of four forecasting models at a single timepoint
+are displayed below.
+
+![example.png](evaluation%2Fplots%2Fperformance%2Fexample.png)
+
+(Time-axis has been shifted.)
+
