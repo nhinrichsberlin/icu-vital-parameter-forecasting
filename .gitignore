@@ -45,7 +45,7 @@ data/predictions/training_metrics_univariate/*.yaml
 data/predictions/training_metrics_univariate/*.csv
 
 evaluation/plots/hyperparams/*.png
-evaluation/plots/performance/*.png
+# evaluation/plots/performance/*.png
 evaluation/plots/loss/*.png
 evaluation/tables/*.csv
 evaluation/tables/*.xlsx
