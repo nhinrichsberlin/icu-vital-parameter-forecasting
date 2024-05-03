@@ -56,6 +56,53 @@
 }
 
 
+.compute_pvals_internal_vs_external <- function(data,
+                                                vars,
+                                                cont_vars,
+                                                cat_vars,
+                                                var_labels) {
+  
+  # add column distinguishing between internal and external data
+  data <-
+    data %>% 
+    dplyr::mutate(
+      datatype_internal_external = dplyr::case_when(
+        startsWith(datatype, "External") ~ "External",
+                                    TRUE ~ "Internal")
+    )
+  
+  table_int_ext <- 
+    tableone::CreateTableOne(data = data,
+                             vars = vars,
+                             factorVars = cat_vars,
+                             strata = "datatype_internal_external",
+                             testNonNormal = wilcox.test)
+  
+  # convert to chr
+  table_chr <- 
+    table %>% 
+    print(nonnormal = cont_vars,
+          smd = FALSE,
+          test = TRUE,
+          showAllLevels = FALSE,
+          varLabels = if (is.null(var_labels)) FALSE else TRUE,
+          dropEqual = TRUE,
+          explain = FALSE)
+  
+  # convert to tibble
+  rownames <- dimnames(table_chr)[[1]]
+  
+  table_tibble_pvals <-
+    table_chr %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::mutate(" " = rownames) %>% 
+    dplyr::select(c(" ", "p"))
+  
+  return(table_tibble_pvals)
+  
+}
+
+
 #' Produces a nice table one
 mlife_vs_eicu <- function(all_vars, 
                           cont_vars,
@@ -64,7 +111,7 @@ mlife_vs_eicu <- function(all_vars,
   
   data <- .load_mlife_vs_eicu(var_labels)
   
-  # create a nice table
+  # create a nice table using tableone
   table <- 
     tableone::CreateTableOne(data = data,
                              vars = all_vars,
@@ -94,6 +141,19 @@ mlife_vs_eicu <- function(all_vars,
                     "Validation data",
                     "Internal test data",
                     "External test data (EICU)"))
+  
+  # compute p-values comparing internal and external data
+  pval_tibble <- .compute_pvals_internal_vs_external(data = data,
+                                                     vars = all_vars,
+                                                     cont_vars = cont_vars,
+                                                     cat_vars = cat_vars,
+                                                     var_labels = var_labels)
+  
+  # join the p-values to table1
+  table_tibble <-
+    table_tibble %>% 
+    dplyr::left_join(pval_tibble, 
+                     by = " ")
   
   # add number of cases
   n_cases <- 
