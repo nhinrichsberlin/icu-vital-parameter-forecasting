@@ -2,7 +2,7 @@ source("R/setup.R")
 source("R/shinyforecasts/plots.R")
 
 config <- yaml::read_yaml("config/config.yaml")
-dataset <- "test"
+dataset <- "xxx"
 case_id <- "xxx"
 case_pattern <- paste0("case_", case_id, ".parquet$")
 
@@ -12,63 +12,69 @@ ml_folder <- paste0("data/predictions/", dataset, "_predictions_ml/")
 case_files <- c(
   paste0(univ_folder, list.files(univ_folder) %>% stringr::str_subset(case_pattern)),
   paste0(ml_folder, list.files(ml_folder) %>% stringr::str_subset(case_pattern))
-
+  
 )
 
 case_data <-
-  case_files %>%
-  purrr::map(~arrow::read_parquet(.)) %>%
+  case_files %>% 
+  purrr::map(~arrow::read_parquet(.)) %>% 
   dplyr::bind_rows()
 
-models_to_plot <- c("naive", "arima_auto", "gru", "transformer")
+models_to_plot <- c("naive", "arima_auto",  "n_hits", "gru")
 
 # times as they really are
-datetime_forecast <- lubridate::as_datetime("20xx-xx-xx xx:xx:xx", tz = "Europe/Berlin")
-start <- lubridate::as_datetime("20xx-xx-xx xx:xx:xx", tz = "Europe/Berlin")
-end <- lubridate::as_datetime("20xx-xx-xx xx:xx:xx", tz = "Europe/Berlin")
+datetime_forecast <- lubridate::as_datetime("xxx", tz = "Europe/Berlin")
+start <- lubridate::as_datetime("xxx", tz = "Europe/Berlin")
+end <- lubridate::as_datetime("xxx", tz = "Europe/Berlin")
 
 # convert times for anonymity
-shift <- lubridate::minutes(xx)
+shift <- lubridate::minutes(xxx)
 datetime_forecast <- datetime_forecast + shift
 start <- start + shift
 end <- end + shift
 case_data <-
-  case_data %>%
+  case_data %>% 
   dplyr::mutate(datetime_at_forecast = datetime_at_forecast + shift,
                 datetime = datetime + shift)
 
 case_data <-
-  case_data %>%
+  case_data %>% 
   dplyr::filter(datetime >= start,
-                datetime <= end) %>%
+                datetime <= end) %>% 
   dplyr::filter(model_name %in% models_to_plot)
 
 case_data_true <-
-  case_data %>%
-  dplyr::group_by(datetime, target_type) %>%
+  case_data %>% 
+  dplyr::group_by(datetime, target_type) %>% 
   dplyr::summarise(target_value = median(target_value), .groups = "keep")
 
 case_data_forecasts <-
-  case_data %>%
+  case_data %>% 
   dplyr::filter(datetime_at_forecast == datetime_forecast)
 
 ylims <-
-  case_data %>%
-  dplyr::group_by(target_type) %>%
+  case_data %>% 
+  dplyr::group_by(target_type) %>% 
   dplyr::summarise(min_true = min(target_value),
                    max_true = max(target_value),
                    min_forecast = min(prediction),
                    max_forecast = max(prediction),
                    .groups = "keep")
 
-col_map <-
-  config
-  purrr::pluck("ts_model_colours") %>%
+# hack to make this plot nicer
+ylims$min_true <- c(40, 50, 100, 0, 75, 95)
+ylims$max_true <- c(65, 100, 200, 14, 95, 100)
+ylims$min_forecast <- ylims$min_true
+ylims$max_forecast <- ylims$max_true
+
+col_map <- 
+  config 
+  purrr::pluck("ts_model_colours") %>% 
   unlist()
 
 model_name_map <-
-  config %>%
-  purrr::pluck("model_name_labels") %>%
+  config %>% 
+  purrr::pluck("model_name_labels") %>% 
   unlist()
 
 
@@ -82,10 +88,10 @@ model_name_map <-
               data_forecasts = case_data_forecasts,
               forecast_time = datetime_forecast,
               ylims_per_target_type = ylims,
-              legend_position = c(1, 1.1),
+              legend_position = c(1, 1.16),
               legend_direction = "horizontal",
-              output_file = "evaluation/plots/performance/example.png",
-              linewidth = 0.5,
-              pointsize = 0.75,
+              output_file = "evaluation/plots/performance/example.tiff",
+              linewidth = 0.4,
+              pointsize = 0.4,
               nrow = 3,
               ncol = 2)
