@@ -72,7 +72,14 @@ def ffill_data(
                 .rename({'index': 'datetime'}, axis=1)
         for target in TARGETS:
             df_case[f'{target}__NA'] = df_case[target].isna().astype(int)
-        return df_case.ffill()
+
+        # forward fill non-targets without limit (NAs appear due to re-indexing)
+        non_targets = set(df_case.columns) - set(TARGETS)
+        for nt in non_targets:
+            df_case[nt] = df_case[nt].ffill()
+
+        # forward fill targets with a limit of 3
+        return df_case.ffill(limit=3)
 
     LOGGER.info('Forward filling missing values.')
     df_ffilled = pd.concat(
@@ -88,7 +95,7 @@ def impute_data(
 ) -> pd.DataFrame:
 
     # load fitted imputer
-    median_imputer = pickle_to_object('data/processed/median_imputer.pkl')
+    median_imputer = pickle_to_object('data/processed/iterative_imputer.pkl')
 
     # impute targets
     df = impute_columns(
@@ -125,7 +132,7 @@ def main():
     df = truncate_ts(df, min_obs_required=MIN_OBS_REQUIRED / 5)
 
     # some reporting on NAs
-    report_nas(df)
+    report_nas(df, 'data/processed/na_per_target_eicu.csv')
 
     # make sure there are no gaps in the time index and ffill
     df = ffill_data(df)
