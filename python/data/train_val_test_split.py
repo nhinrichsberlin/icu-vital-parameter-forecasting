@@ -1,7 +1,9 @@
 from typing import Tuple
 import pandas as pd
 
-from sklearn.impute import SimpleImputer
+from sklearn.experimental import enable_iterative_imputer   # noqa
+from sklearn.impute import IterativeImputer # noqa
+from sklearn.linear_model import LinearRegression
 
 from python.utils import (
     custom_logger,
@@ -14,6 +16,8 @@ from python.data.generate_mlife import (
     PROCESSED_DATA_PATH,
     check_data
 )
+
+from config import EXTREME_VALUE_LIMITS
 
 from python.data.data_utils import mean_std_per_var
 
@@ -78,17 +82,25 @@ def train_val_test_split(
 def fit_imputer(
         df_train: pd.DataFrame,
         cols_to_impute: list
-) -> SimpleImputer:
+) -> IterativeImputer:
 
     LOGGER.info(f'Fitting a median imputer on training data of shape {df_train.shape}')
-    imputer = SimpleImputer(strategy='median')
+    imputer = IterativeImputer(
+        estimator=LinearRegression(),
+        max_iter=1000,
+        initial_strategy='median',
+        imputation_order='random',
+        random_state=789,
+        min_value=[EXTREME_VALUE_LIMITS[c]['min'] for c in cols_to_impute],
+        max_value=[EXTREME_VALUE_LIMITS[c]['max'] for c in cols_to_impute]
+    )
     imputer.fit(df_train[cols_to_impute])
     return imputer
 
 
 def impute_columns(
         df: pd.DataFrame,
-        imputer: SimpleImputer,
+        imputer: IterativeImputer,
         cols_to_impute: list
 ) -> pd.DataFrame:
 
@@ -128,7 +140,7 @@ def store_mu_sigma_train(
 
 def store_imputer(
         strategy: str,
-        imputer: SimpleImputer
+        imputer: IterativeImputer
 ) -> None:
 
     LOGGER.info(f'Storing {strategy} imputer.')
@@ -151,7 +163,7 @@ def main():
     )
 
     # store the imputer for later use (EICU dataset)
-    store_imputer('median', imputer)
+    store_imputer('iterative', imputer)
 
     # insert the imputed values
     df_train = impute_columns(df_train, imputer, TARGETS)

@@ -82,7 +82,12 @@ def query_mlife(
 
     # make sure the output folder is empty
     if any(file.endswith('.parquet') for file in os.listdir(QUERY_OUTPUT_FOLDER)):
-        os.system(f'rm -r {QUERY_OUTPUT_FOLDER}/*.parquet')
+        [
+            os.remove(os.path.join(QUERY_OUTPUT_FOLDER, f))
+            for f in os.listdir(QUERY_OUTPUT_FOLDER)
+            if f.endswith('.parquet')
+        ]
+        assert not any(file.endswith('.parquet') for file in os.listdir(QUERY_OUTPUT_FOLDER))
 
     # create a duckdb connection
     con = duckdb.connect(':memory:', read_only=False)
@@ -291,8 +296,8 @@ def ffill_resample_ts(
         # store info on missing values
         for target in TARGETS:
             df_case[f'{target}__NA'] = df_case[target].isna().astype(int)
-        # forward fill missing values
-        return df_case.ffill()
+        # forward fill missing values for up to 15 minutes
+        return df_case.ffill(limit=3)
 
     LOGGER.info(f'Forward-fill missing values and resample to {RESAMPLING_MINUTES} minutes'
                 f' using the {RESAMPLING_AGG_FUNC}.')
@@ -349,10 +354,14 @@ def remove_extreme_values(
 
 
 def report_nas(
-        df: pd.DataFrame
+        df: pd.DataFrame,
+        output_path: str = None
 ) -> None:
     # compute percentage of missing values per column
     nas = df[TARGETS].isna().mean().sort_values(ascending=False)
+
+    if output_path is not None:
+        nas.reset_index().to_csv(output_path, sep=';', index=False)
 
     LOGGER.info('Percentage of missing values: ')
     for c in nas[nas > 0].index:
@@ -407,6 +416,12 @@ def main():
              for file in os.listdir(QUERY_OUTPUT_FOLDER)
              if file.startswith('case_')]
 
+    # we need to track the percentage of missing data
+    missing_pre_resample = {t: 0 for t in TARGETS}
+    missing_post_resample = {t: 0 for t in TARGETS}
+    n_obs_pre_resample = 0
+    n_obs_post_resample = 0
+
     # loop over sub-lists of the case files (all at once can cause problems)
     for i, file_chunk in enumerate(np.array_split(files, 10), start=1):
         LOGGER.info(f'Processing chunk number {i} / 10')
@@ -432,14 +447,29 @@ def main():
         # some reporting on NAs
         report_nas(df)
 
+        n_obs_pre_resample += df.shape[0]
+        for t in TARGETS:
+            missing_pre_resample[t] += df[t].isna().sum()
+
         # forward-fill missing values and re-sample to 5 minutes
         df = ffill_resample_ts(df, minutes=RESAMPLING_MINUTES)
+
+        n_obs_post_resample += df.shape[0]
+        for t in TARGETS:
+            missing_post_resample[t] += df[t].isna().sum()
 
         # check that everything's still fine after processing
         check_data(df, resampled=True, evenly_spaced_times=True)
 
         # store final result as parquet
         to_parquet_per_case(df, PROCESSED_DATA_PATH, clear_first=(i == 1))
+
+    # store fraction of missing data
+    na_per_target_pre = (pd.Series(missing_pre_resample) / n_obs_pre_resample).reset_index()
+    na_per_target_post = (pd.Series(missing_post_resample) / n_obs_post_resample).reset_index()
+
+    na_per_target_pre.to_csv('data/processed/na_per_target_mlife_pre_resampling.csv', sep=';', index=False)
+    na_per_target_post.to_csv('data/processed/na_per_target_mlife_post_resampling.csv', sep=';', index=False)
 
 
 if __name__ == '__main__':

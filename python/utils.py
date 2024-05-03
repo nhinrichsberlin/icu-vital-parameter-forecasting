@@ -1,3 +1,4 @@
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from typing import Any
 import yaml
 import datetime
@@ -8,6 +9,19 @@ import pandas as pd
 import duckdb
 import psycopg2
 from joblib import Parallel, delayed
+
+
+def load_vitals_from_parquet(
+        train_val_test_eicu: str,
+        cols_to_read=None
+) -> pd.DataFrame:
+
+    folder = f'data/processed/vitals_{train_val_test_eicu}'
+    files = [f'{folder}/{f}' for f in os.listdir(folder) if f.endswith('.parquet')]
+    df = pd.concat([pd.read_parquet(f, columns=cols_to_read) for f in files])
+
+    return df
+
 
 
 def yaml_to_dict(
@@ -87,15 +101,18 @@ def to_parquet_per_case(
 
     if clear_first and any(file.endswith('.parquet') for file in os.listdir(output_folder)):
         logger.info(f'Emptying previous entries in {output_folder}')
-        # empty the folder containing each case in parquet format
-        os.system(f'rm -r {output_folder}/*.parquet')
+        [
+            os.remove(os.path.join(output_folder, f))
+            for f in os.listdir(output_folder)
+            if f.endswith('.parquet')
+        ]
         logger.info('\tEmptying complete')
 
     def _case_to_parquet(dfc: pd.DataFrame):
         assert len(dfc.case_id.unique()) == 1, 'More than one case!'
-        c = dfc.case_id.min()
-        if type(c) == float | type(c) == int:
-            c = int(c)
+        c = str(dfc.case_id.min())
+        if c.isdigit() or (c.endswith('.0') and c.split('.')[0].isdigit()):
+            c = int(float(c))
         dfc.to_parquet(f'{output_folder}/case_{c}.parquet')
 
     Parallel(n_jobs=-3)(delayed(_case_to_parquet)(df[df.case_id == case]) for case in df.case_id.unique())
@@ -159,3 +176,17 @@ def postgres_execute_query(
     con.commit()
 
     con.close()
+
+
+def silence_ray():
+    import ray
+    ray.init(log_to_driver=False)
+    os.environ['RAY_AIR_NEW_OUTPUT'] = '0'
+
+
+@contextmanager
+def suppress_console_output():
+    """A context manager that redirects stdout and stderr to devnull"""
+    with open(os.devnull, 'w') as f_null:
+        with redirect_stderr(f_null) as err, redirect_stdout(f_null) as out:
+            yield err, out
