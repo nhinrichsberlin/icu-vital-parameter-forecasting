@@ -511,7 +511,7 @@ run_forecast_pipeline <- function(dataset,
   
   # decide on the number of cpus to use
   if (n_cores %>% is.null()) {
-    n_cores <- parallel::detectCores() - 4
+    n_cores <- parallel::detectCores() - 1
   }
   message(paste0("Using ", n_cores, " CPUs for forecasting."))
   
