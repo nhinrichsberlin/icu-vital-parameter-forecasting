@@ -12,8 +12,8 @@ DATE_START = CONFIG['date_start']
 DATE_END = CONFIG['date_end']
 
 TARGETS = CONFIG['targets']
+TARGET_LABELS = CONFIG['var_labels']
 EXTREME_VALUE_LIMITS = CONFIG['extreme_value_limits']
-DANGER_ZONE_LIMITS = CONFIG['danger_zone_limits']
 
 EICU_PATIENT_LIMIT = CONFIG.get('eicu_patient_limit', 10 ** 10)
 MLIFE_PATIENT_LIMIT = CONFIG.get('mlife_patient_limit', 10 ** 10)
