@@ -17,22 +17,22 @@ targets:
   - heart_rate
 extreme_value_limits:
   blood_pressure_systolic:
-    min: 20
-    max: 240
+    min: 8
+    max: 350
   blood_pressure_diastolic:
     min: 8
-    max: 130
+    max: 150
   blood_pressure_mean:
     min: 8
-    max: 150
+    max: 170
   central_venous_pressure:
-    min: 0
-    max: 40
+    min: -15
+    max: 50
   heart_rate:
-    min: 20
-    max: 250
+    min: 10
+    max: 330
   oxygen_saturation:
-    min: 45
+    min: 40
     max: 100
 needed_output_columns:
   - case_id
@@ -47,14 +47,17 @@ needed_output_columns:
   - target_imputed
 ts_models:
   - naive
-  - ses
-  - holt
-  - holt_damped
-  - theta
   - theta_unseasonal
   - es_auto
   - arima_auto
   - nnet_ar
+ml_models:
+  - n_hits
+  - n_beats
+  - informer
+  - vanilla_transformer
+  - gru
+  - transformer
 ts_models_exclude_from_blend:
   - naive
   - ses
@@ -62,32 +65,34 @@ ts_models_exclude_from_blend:
   - holt-damped
   - theta
 ts_models_to_plot:
+  # univariate statistical
   - naive
   - theta_unseasonal
   - es_auto
   - arima_auto
   - nnet_ar
+  # univariate ML
+  - n_beats
+  - n_hits
+  # multivariate ML
   - gru
   - transformer
 minutes_ahead_to_plot:
   - 5
-  - 10
   - 15
   - 30
   - 60
   - 120
 ts_model_colours:
   naive: "#32CD32"            # green
-  theta: "#FF00FF"            # magenta
   theta_unseasonal: "#4c004c" # deep purple
-  ses: "#808000"              # olive
-  holt: "#C0C0C0"             # silver
-  holt_damped: "#EE82EE"      # violet
   transformer: "#FF0000"      # red
   gru: "#0000FF"              # blue
   arima_auto: "#FFD700"       # gold
   es_auto: "#800080"          # purple
   nnet_ar: "#008080"          # teal
+  n_hits: "#EE82EE"           # violet
+  n_beats: "#71fff1"          # light green
 var_labels:
   blood_pressure_systolic: BP Systolic (mmHg)
   blood_pressure_diastolic: BP Diastolic (mmHg)
@@ -110,3 +115,5 @@ model_name_labels:
   blend: "Ensemble"
   gru: "GRU"
   transformer: "Transformer"
+  n_hits: "N-HiTS"
+  n_beats: "N-BEATS"
