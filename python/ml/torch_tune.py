@@ -10,9 +10,10 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 
 from hyperopt import hp
+import ray
 from ray import tune
 from ray.tune.schedulers import AsyncHyperBandScheduler
-from ray.tune.suggest.hyperopt import HyperOptSearch
+from ray.tune.search.hyperopt import HyperOptSearch
 
 from python.data.data_utils import build_prediction_df
 from python.ml.models.gru import GRU
@@ -25,6 +26,8 @@ from python.utils import custom_logger, pickle_to_object, object_to_pickle
 
 time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S").replace(" ", "__")
 LOGGER = custom_logger('python/ml/torch_tune.py', f'python/logs/tune_{time}.txt')
+
+GPU = torch.cuda.is_available()
 
 METRIC = 'loss'
 METRIC_MODE = 'min'
@@ -40,7 +43,7 @@ TRAIN_LOADER = DataLoader(
                           mu_sigma=MU_SIGMA,
                           subsample_size=None),
     batch_size=128,
-    num_workers=30,
+    num_workers=30 * GPU,
     pin_memory=True
 )
 
@@ -49,7 +52,7 @@ VAL_LOADER = DataLoader(
                           mu_sigma=MU_SIGMA,
                           subsample_size=None),
     batch_size=32,
-    num_workers=30,
+    num_workers=30 * GPU,
     pin_memory=True
 )
 
@@ -389,6 +392,13 @@ def main():
             grace_period=GRACE_PERIOD
         )
 
+        # initialize ray
+        ray.init(
+            logging_level='error',
+            ignore_reinit_error=True
+        )
+        os.environ['RAY_AIR_NEW_OUTPUT'] = '0'
+
         start_time = datetime.datetime.now()
         LOGGER.info(f'Trying {N_SEARCHES} hyperparameter combinations with up to {EPOCHS} epochs.')
         tuning_results = tune.run(
@@ -398,7 +408,7 @@ def main():
             scheduler=scheduler,
             num_samples=N_SEARCHES,
             max_concurrent_trials=3,
-            resources_per_trial={'cpu': 0, 'gpu': 1},
+            resources_per_trial={'cpu': 1 - GPU, 'gpu': GPU},
             name=model_name,
             local_dir='ray_results',
             verbose=0
